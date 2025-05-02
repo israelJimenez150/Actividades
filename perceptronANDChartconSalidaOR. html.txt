@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perceptrón OR</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #grafica {
+            padding: 10px;
+            float: left;
+            width: 600px;
+            height: 400px;
+            border: solid 1px;
+        }
+        #divTabla {
+            width: 200px;
+            padding: 10px;
+            border: solid 1px;
+            float: left;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        pre {
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Perceptrón para la compuerta OR (gráfica con Chart.js)</h2>
+<div>
+    <div id="grafica">
+        <canvas id="miGrafica"></canvas>
+    </div>
+    <div id="divTabla">
+        <table>
+            <thead>
+                <tr>
+                    <th>a</th>
+                    <th>b</th>
+                    <th>Clase</th>
+                    <th>Color</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>0</td><td>0</td><td>0</td><td>rojo</td></tr>
+                <tr><td>0</td><td>1</td><td>1</td><td>azul</td></tr>
+                <tr><td>1</td><td>0</td><td>1</td><td>azul</td></tr>
+                <tr><td>1</td><td>1</td><td>1</td><td>azul</td></tr>
+            </tbody>
+        </table>
+        <pre id="salida"></pre>
+    </div>
+</div>
+
+<script>
+    function entrenaPerceptron() {
+        const X = [[0, 0], [0, 1], [1, 0], [1, 1]];
+        const y = [0, 1, 1, 1]; // ← CAMBIO para compuerta OR
+
+        let w = [Math.random(), Math.random()];
+        let b = Math.random();
+        const eta = 0.1;
+
+        const forward = (x) => {
+            const sum = w[0] * x[0] + w[1] * x[1] + b;
+            return sum > 0 ? 1 : 0;
+        };
+
+        for (let epoch = 0; epoch < 100; epoch++) {
+            for (let i = 0; i < X.length; i++) {
+                const y_pred = forward(X[i]);
+                const e = y[i] - y_pred;
+                w[0] += eta * e * X[i][0];
+                w[1] += eta * e * X[i][1];
+                b += eta * e;
+            }
+        }
+
+        document.getElementById("salida").innerText =
+`Pesos ajustados del perceptrón (OR):
+
+w0 (bias) = ${b.toFixed(3)}
+w1        = ${w[0].toFixed(3)}
+w2        = ${w[1].toFixed(3)}
+`;
+        return { w0: b, w1: w[0], w2: w[1] };
+    }
+
+    const { w0, w1, w2 } = entrenaPerceptron();
+
+    const labels = [-0.5, 0, 0.5, 1, 1.5, 2];
+    const dataLine = labels.map(x => ({
+        x: x,
+        y: (-w0 - w1 * x) / w2
+    }));
+
+    const config = {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Clase 0',
+                    data: [{ x: 0, y: 0 }],
+                    backgroundColor: 'red',
+                    pointRadius: 5
+                },
+                {
+                    label: 'Clase 1',
+                    data: [
+                        { x: 0, y: 1 },
+                        { x: 1, y: 0 },
+                        { x: 1, y: 1 }
+                    ],
+                    backgroundColor: 'blue',
+                    pointRadius: 5
+                },
+                {
+                    label: 'Recta de separación',
+                    data: dataLine,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    type: 'line',
+                    showLine: true
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            scales: {
+                x: { type: 'linear', min: -1, max: 2 },
+                y: { min: -1, max: 2 }
+            }
+        }
+    };
+
+    const ctx = document.getElementById('miGrafica').getContext('2d');
+    new Chart(ctx, config);
+</script>
+
+</body>
+</html>

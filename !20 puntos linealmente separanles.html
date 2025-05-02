@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Perceptrón con 20 puntos</title>
+  <style>
+    body { font-family: sans-serif; }
+    canvas { border: 1px solid black; background-color: #eee; }
+    input { margin: 4px; }
+    .boton {
+      padding: 5px 10px;
+      background-color: #1883ba;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Perceptrón con 20 puntos linealmente separables</h2>
+  <canvas id="canvas" width="400" height="400"></canvas><br>
+  <input type="button" value="Entrenar" onclick="entrenar()" class="boton">
+  <p id="pesos"></p>
+  <script>
+    const ctx = document.getElementById("canvas").getContext("2d");
+    const ancho = ctx.canvas.width;
+    const alto = ctx.canvas.height;
+
+    // Crear 20 puntos linealmente separables (10 de cada clase)
+    const puntos = [];
+    const X = [];
+    const Z = [];
+
+    // Clase -1 (izquierda)
+    for (let i = 0; i < 10; i++) {
+      let x = Math.random() * 2 - 3; // entre -3 y -1
+      let y = Math.random() * 4 - 2; // entre -2 y 2
+      puntos.push({x: x, y: y, clase: -1});
+      X.push([x, y]);
+      Z.push(-1);
+    }
+
+    // Clase +1 (derecha)
+    for (let i = 0; i < 10; i++) {
+      let x = Math.random() * 2 + 1; // entre 1 y 3
+      let y = Math.random() * 4 - 2; // entre -2 y 2
+      puntos.push({x: x, y: y, clase: 1});
+      X.push([x, y]);
+      Z.push(1);
+    }
+
+    let W = [0, 0, 0]; // pesos iniciales
+    let entrenado = false;
+
+    function dibujarPuntos() {
+      ctx.clearRect(0, 0, ancho, alto);
+      puntos.forEach(p => {
+        let cx = (p.x + 4) * 50;
+        let cy = alto - (p.y + 4) * 50;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = p.clase === 1 ? "blue" : "green";
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
+    function dibujarLinea() {
+      ctx.beginPath();
+      ctx.strokeStyle = "red";
+
+      const x1 = -4;
+      const x2 = 4;
+      const y1 = (-W[0] * x1 - W[2]) / W[1];
+      const y2 = (-W[0] * x2 - W[2]) / W[1];
+
+      const cx1 = (x1 + 4) * 50;
+      const cy1 = alto - (y1 + 4) * 50;
+      const cx2 = (x2 + 4) * 50;
+      const cy2 = alto - (y2 + 4) * 50;
+
+      ctx.moveTo(cx1, cy1);
+      ctx.lineTo(cx2, cy2);
+      ctx.stroke();
+    }
+
+    function signo(n) {
+      return n >= 0 ? 1 : -1;
+    }
+
+    function entrenar() {
+      if (entrenado) {
+        alert("¡Ya está entrenado!");
+        return;
+      }
+
+      let maxIter = 100;
+      let iter = 0;
+      let actualizado;
+
+      do {
+        actualizado = false;
+        for (let i = 0; i < X.length; i++) {
+          const [x1, x2] = X[i];
+          const salida = signo(W[0]*x1 + W[1]*x2 + W[2]);
+          const error = Z[i] - salida;
+
+          if (error !== 0) {
+            W[0] += error * x1;
+            W[1] += error * x2;
+            W[2] += error * 1; // bias
+            actualizado = true;
+          }
+        }
+        iter++;
+      } while (actualizado && iter < maxIter);
+
+      entrenado = true;
+      dibujarPuntos();
+      dibujarLinea();
+      document.getElementById("pesos").textContent = `Pesos entrenados: W = [${W.map(v => v.toFixed(2)).join(", ")}]`;
+    }
+
+    // Inicial
+    dibujarPuntos();
+  </script>
+</body>
+</html>

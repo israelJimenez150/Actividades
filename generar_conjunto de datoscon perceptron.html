@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Perceptrón con Interfaz Gráfica</title>
+    <style>
+        /* ... Tus estilos CSS originales ... */
+        body {
+            display: block;
+        }
+        #div_imagen {
+            display: inline-block;
+            border: 1px solid grey;
+        }
+        #titulo {
+            border: 1px solid grey;
+            padding: 2px;
+        }
+        #mi_grafica {
+            float: left;
+            padding-right: 5px;
+        }
+        #mi_div {
+            float: left;
+            border: 1px solid grey;
+            padding-left: 3px;
+        }
+        #canvas {
+            border: 1px solid grey;
+            float: left;
+            margin: 10;
+            background: #D3D3D3;
+        }
+        input {
+            display: block;
+        }
+        td {
+            text-align: right;
+        }
+        td.verde {
+            color: green;
+        }
+        td.azul {
+            color: blue;
+        }
+        .boton {
+            text-decoration: none;
+            padding: 5px;
+            font-weight: 600;
+            font-size: 15px;
+            color: #ffffff;
+            background-color: #1883ba;
+            border-radius: 6px;
+            border: 2px solid #0016b0;
+        }
+        #customers {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+        }
+        #customers td, #customers th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        #customers tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        #customers tr:hover {
+            background-color: #ddd;
+        }
+        #customers th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="principal">
+        <div id="div_trabajo">
+            <p id="titulo">Agrega puntos (x, y, clase), luego entrena el perceptrón.</p>
+            <div id="mi_grafica">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+            <div id="mi_div">
+                <label>Área gráfica -50 a 50</label>
+                <label>Dame x</label>
+                <input type="number" id="x" placeholder="x"><br>
+                <label>Dame y</label>
+                <input type="number" id="y" placeholder="y"><br>
+                <label>Clase (1 o -1)</label>
+                <input type="number" id="clase" placeholder="clase" min="-1" max="1" value="1"><br>
+                <input type="button" id="llena_tabla" class="boton" value="Llenar tabla"><br>
+                <input type="button" id="btn_salida" class="boton" value="Mostrar arreglo"><br>
+                <input type="button" id="entrenar" class="boton" value="Entrenar perceptrón"><br>
+                <div style="overflow:scroll;height:200px;width:200px;">
+                    <table id="customers">
+                        <caption>Puntos</caption>
+                        <thead>
+                            <tr><td>x1</td><td>x2</td><td>Clase</td></tr>
+                        </thead>
+                        <tbody id="datos_tabla"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p id="salida"></p>
+
+    <script>
+        let area_grafica = {
+            alto_canvas: 0, ancho_canvas: 0,
+            alto_grafica: 0, ancho_grafica: 0,
+            minx: -50, miny: -50, maxx: 50, maxy: 50,
+            padding: 5
+        };
+        let puntos = [];
+
+        function pon_punto(ctx, objeto, radio, color1, color2) {
+            ctx.save();
+            ctx.strokeStyle = color1;
+            ctx.fillStyle = color2;
+            ctx.beginPath();
+            ctx.arc(objeto.x, objeto.y, radio, 0, 2 * Math.PI);
+            if (color2) ctx.fill(); else ctx.stroke();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function ponCentro() {
+            ctx.save();
+            let px = area_grafica.ancho_canvas / 2;
+            let py = area_grafica.alto_canvas / 2;
+            ctx.strokeText("(0,0)", px - 23, py + 10);
+            ctx.strokeText("-50", 0, py + 10);
+            ctx.strokeText("50", area_grafica.ancho_canvas - 5, py + 10);
+            ctx.strokeText("50", px - 9, 10);
+            ctx.strokeText("-50", px - 12, area_grafica.alto_canvas);
+            ctx.moveTo(px, 0); ctx.lineTo(px, area_grafica.alto_canvas);
+            ctx.stroke();
+            ctx.moveTo(0, py); ctx.lineTo(area_grafica.ancho_canvas, py);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function llena_tabla() {
+            let s = "";
+            puntos.forEach(x => {
+                s += "<tr><td>" + x.x_real + "</td><td>" + x.y_real + "</td><td>" + x.clase + "</td></tr>";
+            });
+            document.getElementById("datos_tabla").innerHTML = s;
+        }
+
+        function calcula_area_grafica() {
+            area_grafica.ancho_grafica = area_grafica.maxx - area_grafica.minx;
+            area_grafica.alto_grafica = area_grafica.maxy - area_grafica.miny;
+        }
+
+        function transformar_coordenadas(x_real, y_real) {
+            let x = ((x_real - area_grafica.minx) * area_grafica.ancho_canvas) / area_grafica.ancho_grafica;
+            let y = area_grafica.alto_canvas - ((y_real - area_grafica.miny) * area_grafica.alto_canvas) / area_grafica.alto_grafica;
+            return { x, y };
+        }
+
+        let ctx;
+        window.onload = function () {
+            let canvas = document.getElementById("canvas");
+            ctx = canvas.getContext("2d");
+
+            canvas.addEventListener('mousedown', function (evt) {
+                let rect = canvas.getBoundingClientRect();
+                let x_pix = evt.clientX - rect.left;
+                let y_pix = evt.clientY - rect.top;
+                let x_real = Math.round(((x_pix * area_grafica.ancho_grafica) / area_grafica.ancho_canvas) + area_grafica.minx);
+                let y_real = Math.round(((-1 * (y_pix - area_grafica.alto_canvas)) * area_grafica.alto_grafica) / area_grafica.alto_canvas + area_grafica.miny);
+                let clase = parseInt(document.getElementById("clase").value);
+                puntos.push({ x_real, y_real, clase });
+
+                let { x, y } = transformar_coordenadas(x_real, y_real);
+                pon_punto(ctx, { x, y }, 5, "black", clase === 1 ? "blue" : "green");
+            });
+
+            document.getElementById("llena_tabla").addEventListener("click", llena_tabla);
+
+            document.getElementById("btn_salida").addEventListener("click", function () {
+                document.getElementById("salida").innerText = JSON.stringify(puntos);
+            });
+
+            document.getElementById("entrenar").addEventListener("click", function () {
+                if (puntos.length === 0) {
+                    alert("Agrega puntos primero.");
+                    return;
+                }
+
+                // Preparamos datos para entrenamiento
+                let X = puntos.map(p => [p.x_real, p.y_real]);
+                let y = puntos.map(p => p.clase === 1 ? 1 : 0);
+
+                // Inicialización
+                let w = [Math.random(), Math.random()];
+                let b = Math.random();
+                const eta = 0.1;
+
+                // Perceptrón
+                const forward = x => w[0] * x[0] + w[1] * x[1] + b > 0 ? 1 : 0;
+
+                for (let epoch = 0; epoch < 100; epoch++) {
+                    for (let i = 0; i < X.length; i++) {
+                        const y_pred = forward(X[i]);
+                        const e = y[i] - y_pred;
+                        w[0] += eta * e * X[i][0];
+                        w[1] += eta * e * X[i][1];
+                        b += eta * e;
+                    }
+                }
+
+                console.log("Pesos ajustados:", w);
+                console.log("Bias ajustado:", b);
+                alert("Entrenamiento completado. Revisa la consola para ver los resultados.");
+            });
+
+            area_grafica.alto_canvas = ctx.canvas.clientHeight - 10;
+            area_grafica.ancho_canvas = ctx.canvas.clientWidth - 10;
+            calcula_area_grafica();
+            ponCentro();
+        }
+    </script>
+</body>
+</html>
