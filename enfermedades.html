@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Predicción de Enfermedades Cardíacas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+  <h2>Predicción de Enfermedades Cardíacas</h2>
+  <p id="resultado">Entrenando red neuronal...</p>
+
+  <script>
+    // Simulación de datos: 13 atributos por paciente
+    const datosEntrada = [
+      [63, 1, 1, 145, 233, 1, 2, 150, 0, 2.3, 0, 0, 1],
+      [37, 1, 2, 130, 250, 0, 0, 187, 0, 3.5, 0, 0, 2],
+      [41, 0, 1, 130, 204, 0, 2, 172, 0, 1.4, 2, 0, 2],
+      [56, 1, 1, 120, 236, 0, 0, 178, 0, 0.8, 1, 0, 2],
+      [57, 0, 0, 120, 354, 0, 0, 163, 1, 0.6, 1, 0, 3]
+    ];
+
+    const etiquetas = [1, 1, 1, 1, 0]; // 1 = enfermedad, 0 = sano
+
+    const model = tf.sequential();
+    model.add(tf.layers.dense({ inputShape: [13], units: 8, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }));
+
+    model.compile({
+      optimizer: 'adam',
+      loss: 'binaryCrossentropy',
+      metrics: ['accuracy']
+    });
+
+    async function entrenar() {
+      const xs = tf.tensor2d(datosEntrada);
+      const ys = tf.tensor2d(etiquetas, [etiquetas.length, 1]);
+
+      await model.fit(xs, ys, {
+        epochs: 300,
+        callbacks: {
+          onEpochEnd: (epoch, logs) => {
+            document.getElementById("resultado").textContent =
+              `Época ${epoch + 1}: Precisión ${logs.acc.toFixed(2)}`;
+          }
+        }
+      });
+
+      const pred = model.predict(xs);
+      pred.print();
+    }
+
+    entrenar();
+  </script>
+</body>
+</html>
